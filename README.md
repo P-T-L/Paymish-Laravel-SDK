@@ -1,9 +1,9 @@
 # Laravel Paymish
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/bhekor/laravel-paymish.svg?style=flat-square)](https://packagist.org/packages/bhekor/laravel-paymish)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/bhekor/laravel-paymish/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/bhekor/laravel-paymish/actions?query=workflow%3ATests+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/bhekor/laravel-paymish.svg?style=flat-square)](https://packagist.org/packages/bhekor/laravel-paymish)
-[![License](https://img.shields.io/packagist/l/bhekor/laravel-paymish.svg?style=flat-square)](LICENSE.md)
+[![Latest Version on Packagist](https://poser.pugx.org/bhekor/laravel-paymish/v/stable.svg)](https://packagist.org/packages/bhekor/laravel-paymish)
+[![Total Downloads](https://poser.pugx.org/bhekor/laravel-paymish/downloads.svg)](https://packagist.org/packages/bhekor/laravel-paymish)
+[![Tests](https://github.com/bhekor/laravel-paymish/actions/workflows/tests.yml/badge.svg)](https://github.com/bhekor/laravel-paymish/actions/workflows/tests.yml)
+[![License](https://poser.pugx.org/bhekor/laravel-paymish/license.svg)](https://github.com/bhekor/laravel-paymish/blob/main/LICENSE.md)
 
 Laravel package for the [Paymish](https://paymish.com) payment gateway. Covers transactions, transfers, virtual accounts, subscriptions, products, customers, and more.
 
