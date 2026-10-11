@@ -1,6 +1,5 @@
 {
     "name": "bhekor/laravel-paymish",
-    "version": "1.0.0",
     "description": "A Laravel package for integrating Paymish payment gateway API",
     "keywords": [
         "laravel",
@@ -10,23 +9,29 @@
         "nigeria",
         "api"
     ],
+    "homepage": "https://github.com/bhekor/laravel-paymish",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "Ibidapo Adeolu",
-            "email": "bhekor@example.com",
-            "homepage": "https://github.com/bhekor"
+            "email": "adeoluibidapo@gmail.com",
+            "homepage": "https://github.com/bhekor",
+            "role": "Developer"
         }
     ],
+    "support": {
+        "issues": "https://github.com/bhekor/laravel-paymish/issues",
+        "source": "https://github.com/bhekor/laravel-paymish"
+    },
     "require": {
         "php": "^8.2",
-        "illuminate/support": "^10.0|^11.0|^12.0",
-        "guzzlehttp/guzzle": "^7.0"
+        "guzzlehttp/guzzle": "^7.0",
+        "illuminate/support": "^10.0|^11.0|^12.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.0",
-        "orchestra/testbench": "^8.0|^9.0|^10.0"
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0|^11.0"
     },
     "autoload": {
         "psr-4": {
@@ -47,6 +52,13 @@
                 "Paymish": "Bhekor\\Paymish\\Facades\\Paymish"
             }
         }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true

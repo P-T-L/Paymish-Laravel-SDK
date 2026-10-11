@@ -38,9 +38,10 @@ class PaymishServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->publishes([
-            __DIR__.'/config/paymish.php' => config_path('paymish.php'),
-            __DIR__.'/config/endpoints.php' => config_path('paymish-endpoints.php'),
-        ], 'paymish-config');
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/config/paymish.php' => config_path('paymish.php'),
+            ], 'paymish-config');
+        }
     }
 }

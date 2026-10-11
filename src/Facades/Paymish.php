@@ -4,18 +4,20 @@ namespace Bhekor\Paymish\Facades;
 
 use Illuminate\Support\Facades\Facade;
 use Bhekor\Paymish\Api\AuthApi;
-use Bhekor\Paymish\Api\DisputeApi;
-use Bhekor\Paymish\Api\TransactionApi;
-use Bhekor\Paymish\Api\TransferApi;
-use Bhekor\Paymish\Api\RecipientApi;
-use Bhekor\Paymish\Api\SubscriptionApi;
-use Bhekor\Paymish\Api\PlanApi;
-use Bhekor\Paymish\Api\PaymentPageApi;
-use Bhekor\Paymish\Api\ProductApi;
-use Bhekor\Paymish\Api\CustomerApi;
 use Bhekor\Paymish\Api\BusinessApi;
+use Bhekor\Paymish\Api\CustomerApi;
+use Bhekor\Paymish\Api\DedicatedVirtualAccountApi;
+use Bhekor\Paymish\Api\DisputeApi;
+use Bhekor\Paymish\Api\PaymentPageApi;
+use Bhekor\Paymish\Api\PlanApi;
+use Bhekor\Paymish\Api\ProductApi;
+use Bhekor\Paymish\Api\RecipientApi;
 use Bhekor\Paymish\Api\SplitPageApi;
 use Bhekor\Paymish\Api\SubaccountApi;
+use Bhekor\Paymish\Api\SubscriptionApi;
+use Bhekor\Paymish\Api\TransactionApi;
+use Bhekor\Paymish\Api\TransferApi;
+use Bhekor\Paymish\Api\VirtualAccountApi;
 
 /**
  * @method static AuthApi auth()
@@ -31,6 +33,8 @@ use Bhekor\Paymish\Api\SubaccountApi;
  * @method static BusinessApi business()
  * @method static SplitPageApi splitPage()
  * @method static SubaccountApi subaccount()
+ * @method static DedicatedVirtualAccountApi dedicatedVirtualAccount()
+ * @method static VirtualAccountApi virtualAccount()
  */
 class Paymish extends Facade
 {

@@ -28,3 +28,9 @@ All notable changes to `laravel-paymish` will be documented in this file.
 - Response objects for type-safe data handling
 - File upload support for multipart requests
 - Pagination support for list endpoints
+- GitHub Actions CI matrix (PHP 8.2–8.4, Laravel 10–12)
+
+### Fixed
+- Safe endpoint loading outside a bootstrapped Laravel app
+- Dot-notation support on `ApiResponse::get()`
+- PHP 8.5 `ArrayAccess` return type compatibility

@@ -1,24 +1,35 @@
 # Laravel Paymish
 
-A comprehensive Laravel package for seamless integration with the Paymish payment gateway API. Supports transactions, transfers, subscriptions, products, customers, and more for Nigerian payment processing.
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/bhekor/laravel-paymish.svg?style=flat-square)](https://packagist.org/packages/bhekor/laravel-paymish)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/bhekor/laravel-paymish/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/bhekor/laravel-paymish/actions?query=workflow%3ATests+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/bhekor/laravel-paymish.svg?style=flat-square)](https://packagist.org/packages/bhekor/laravel-paymish)
+[![License](https://img.shields.io/packagist/l/bhekor/laravel-paymish.svg?style=flat-square)](LICENSE.md)
+
+Laravel package for the [Paymish](https://paymish.com) payment gateway. Covers transactions, transfers, virtual accounts, subscriptions, products, customers, and more.
+
+Official API docs: https://api.paymish.com/api/user-service/external/v1/docs/
+
+## Requirements
+
+- PHP 8.2+
+- Laravel 10, 11, or 12
+- Guzzle 7+
 
 ## Installation
-
-Install the package via Composer:
 
 ```bash
 composer require bhekor/laravel-paymish
 ```
 
-Publish the configuration file:
+Laravel auto-discovers the service provider and `Paymish` facade. Publish the config when you need to customize defaults:
 
 ```bash
-php artisan vendor:publish --provider="Bhekor\Paymish\PaymishServiceProvider" --tag="paymish-config"
+php artisan vendor:publish --tag="paymish-config"
 ```
 
 ## Configuration
 
-Add your Paymish credentials to your `.env` file. Prefer OpenAPI keys when available; email/password also works:
+Add credentials to `.env`. Prefer OpenAPI keys when available; email/password also works:
 
 ```env
 PAYMISH_PUBLIC_KEY=your-public-key
@@ -33,36 +44,96 @@ PAYMISH_TIMEOUT=30
 PAYMISH_CURRENCY=NGN
 PAYMISH_TOKEN_CACHE_SECONDS=3500
 PAYMISH_WEBHOOK_SECRET=
+PAYMISH_WEBHOOK_SIGNATURE_HEADER=x-paymish-signature
 ```
-
-API reference: https://api.paymish.com/api/user-service/external/v1/docs/
 
 Amounts for initialize / DVA / transfers are in **NGN major units** (send `1100` for ₦1,100). OpenAPI may mention subunits; live Paymish treats the value as naira.
 
-## Usage
+## Security
 
-### Authentication
+- Never hardcode live card numbers, CVVs, or BVNs in application code.
+- Prefer `initialize()` + Paymish hosted checkout over raw `withCard()` when possible (PCI scope).
+- Examples below use **sandbox/test placeholders only**.
+- Always re-verify payments server-side (`transaction()->verify()`) and on webhooks — do not trust client redirects alone.
 
-The client auto-authenticates from config before API calls (cached bearer JWT). You can still call manually:
+## Quick start
 
 ```php
 use Bhekor\Paymish\Facades\Paymish;
 
-$response = Paymish::auth()->generateToken([
-    'email' => 'your-email@example.com',
-    'password' => 'your-password',
+// Initialize (hosted / redirect flow)
+$response = Paymish::transaction()->initialize([
+    'email' => 'customer@email.com',
+    'amount' => '10000',
+    'currency' => 'NGN',
+    'channels' => ['card', 'ussd', 'nqr', 'transfer'],
+    'callback_url' => 'https://your-site.com/callback',
 ]);
-// or: ['public_key' => '...', 'secret_key' => '...']
-```
 
-### Verify transaction
-
-```php
-$response = Paymish::transaction()->verify('ww0yy74pd9tcih');
+// Verify after callback or webhook
+$response = Paymish::transaction()->verify('transaction-reference');
 // data.status: completed | failed | pending | reversed
 ```
 
-### Dedicated virtual account
+The client auto-authenticates from config before API calls (cached bearer JWT).
+
+## Usage
+
+```php
+use Bhekor\Paymish\Facades\Paymish;
+```
+
+### Authentication
+
+Usually automatic. To generate a token manually:
+
+```php
+$response = Paymish::auth()->generateToken([
+    'public_key' => '...',
+    'secret_key' => '...',
+]);
+// or: ['email' => '...', 'password' => '...']
+```
+
+### Transactions
+
+```php
+// Initialize with Dynamic Virtual Account
+$response = Paymish::transaction()->initializeDva([
+    'email' => 'customer@email.com',
+    'amount' => '10000',
+    'reference' => 'unique-reference',
+]);
+
+// Name enquiry (bank account)
+$response = Paymish::transaction()->verifyAccount([
+    'bankCode' => '058',
+    'accountNumber' => '0123456789',
+]);
+
+// List / refund
+$response = Paymish::transaction()->list(['status' => 'completed', 'page' => 1, 'limit' => 20]);
+$response = Paymish::transaction()->refund([
+    'transactionRef' => 'TXN_...',
+    'amount' => 100,
+]);
+```
+
+Channel helpers (test/sandbox data only):
+
+```php
+Paymish::transaction()->withCard([/* customerId, amount, cardNumber, expiryYear, expiryMonth, cvv */]);
+Paymish::transaction()->withUssd(['customerId' => 8, 'amount' => 100]);
+Paymish::transaction()->withQr([/* customerId, amount, mch_no, sub_mch_no */]);
+Paymish::transaction()->withBank([/* customerId, amount, AccountNumber, DestinationInstitutionCode */]);
+Paymish::transaction()->withNdd([/* customerId, amount, ndd => [...] */]);
+
+Paymish::transaction()->verifyUssd(['ussdTransactionId' => '...', 'isLive' => false]);
+Paymish::transaction()->verifyBank([/* DestinationInstitutionCode, AccountNumber, isLive */]);
+Paymish::transaction()->getBanks(false);
+```
+
+### Dedicated virtual accounts
 
 ```php
 $response = Paymish::dedicatedVirtualAccount()->create([
@@ -71,116 +142,32 @@ $response = Paymish::dedicatedVirtualAccount()->create([
     'lastName' => 'Doe',
     'email' => 'customer@email.com',
     'phoneNumber' => '08012345678',
-    'bvn' => '22222222226',
+    'bvn' => '22222222226', // test placeholder
     'dob' => '1990-01-15',
     'address' => '123 Main Street, Lagos',
     'gender' => 'Male',
 ]);
 ```
 
-### Transactions
-
-Initialize a transaction:
+### Virtual accounts
 
 ```php
-$response = Paymish::transaction()->initialize([
-    'email' => 'customer@email.com',
-    'amount' => '10000',
-    'currency' => 'NGN',
-    'channels' => ['card', 'ussd', 'nqr', 'transfer'],
-    'callback_url' => 'https://your-site.com/callback',
-]);
-```
-
-Initialize with Dynamic Virtual Account:
-
-```php
-$response = Paymish::transaction()->initializeDva([
-    'email' => 'customer@email.com',
-    'amount' => '10000',
-    'reference' => 'unique-reference',
-]);
-```
-
-Process transactions:
-
-```php
-// Card transaction
-$response = Paymish::transaction()->withCard([
-    'customerId' => 5,
-    'amount' => 100,
-    'cardNumber' => 5123450161003312,
-    'expiryYear' => 2024,
-    'expiryMonth' => 12,
-    'cvv' => 123,
-]);
-
-// USSD transaction
-$response = Paymish::transaction()->withUssd([
-    'customerId' => 8,
-    'amount' => 100,
-]);
-
-// QR/NQR transaction
-$response = Paymish::transaction()->withQr([
-    'customerId' => 165,
-    'amount' => 152,
-    'mch_no' => 'M0000005463',
-    'sub_mch_no' => 'S0000007263',
-]);
-
-// Bank transaction
-$response = Paymish::transaction()->withBank([
-    'customerId' => 8,
-    'amount' => 100,
-    'AccountNumber' => '1780004070',
-    'DestinationInstitutionCode' => '999998',
-]);
-
-// NDD (NIBSS Direct Debit) transaction
-$response = Paymish::transaction()->withNdd([
-    'customerId' => 165,
-    'amount' => 152,
-    'ndd' => [
-        'productId' => 1,
-        'billerId' => 1,
-        'accountNumber' => '2222222222',
-        'bankCode' => '058',
-        // ... other NDD fields
-    ],
-]);
-```
-
-List transactions:
-
-```php
-$response = Paymish::transaction()->list([
-    'status' => 'completed',
-    'page' => 1,
-    'limit' => 20,
-]);
-```
-
-Refund a transaction:
-
-```php
-$response = Paymish::transaction()->refund([
-    'transactionRef' => 'TXN_waTjNBitbamwNnLuavU1xd',
-    'amount' => 100,
-]);
+$response = Paymish::virtualAccount()->create([/* ... */]);
+$response = Paymish::virtualAccount()->list(['page' => 1, 'limit' => 20]);
+$response = Paymish::virtualAccount()->get($id);
+$response = Paymish::virtualAccount()->update($id, [/* ... */]);
 ```
 
 ### Transfers
 
-Get list of banks:
-
 ```php
 $response = Paymish::transfer()->getAllBanks();
-```
 
-Create a single transfer:
+$response = Paymish::transfer()->resolveAccount([
+    'bankCode' => '058',
+    'accountNumber' => '0123456789',
+]);
 
-```php
 $response = Paymish::transfer()->createSingle([
     'amount' => 1000,
     'bankCode' => '999998',
@@ -191,79 +178,24 @@ $response = Paymish::transfer()->createSingle([
     'transferNote' => 'Payment for invoice #1234',
     'transferReference' => 'INV1234TRANS5678',
 ]);
-```
 
-Get transfer list:
-
-```php
-$response = Paymish::transfer()->getList([
-    'status' => 'Successful',
-    'page' => 1,
-    'limit' => 10,
-]);
-```
-
-Get balance:
-
-```php
+$response = Paymish::transfer()->getList(['status' => 'Successful', 'page' => 1, 'limit' => 10]);
 $response = Paymish::transfer()->getBalance();
+$response = Paymish::transfer()->getDetails('TRF_...');
+$response = Paymish::transfer()->verifyTransfer('TRF_...'); // prefers transfer code
+$response = Paymish::transfer()->submitBulk([/* bulk payload */]);
 ```
 
 ### Recipients
 
-List recipients:
-
 ```php
-$response = Paymish::recipient()->list([
-    'limit' => 10,
-    'page' => 1,
-]);
+$response = Paymish::recipient()->list(['limit' => 10, 'page' => 1]);
+$response = Paymish::recipient()->getDetails('RCP_...');
+$response = Paymish::recipient()->delete('RCP_...');
+$response = Paymish::recipient()->blacklist(['recipientId' => '...', 'isBlackListed' => true]);
 ```
 
-Get recipient details:
-
-```php
-$response = Paymish::recipient()->getDetails('RCP_9SEoJGbj9joXqecsntLNYE');
-```
-
-Delete recipient:
-
-```php
-$response = Paymish::recipient()->delete('RCP_9SEoJGbj9joXqecsntLNYE');
-```
-
-### Subscriptions
-
-Create subscription:
-
-```php
-$response = Paymish::subscription()->create([
-    'planId' => 49,
-    'planName' => 'Premium Plan',
-    'customerId' => 'CUST789',
-    'amount' => 29.99,
-    'nextPaymentDate' => '2024-10-01',
-    'startDate' => '2024-09-01',
-    'subscriptionCode' => 'SUB_ABC123',
-    'paymentCount' => 12,
-    'interval' => 'monthly',
-    'status' => 'active',
-]);
-```
-
-List subscriptions:
-
-```php
-$response = Paymish::subscription()->list([
-    'status' => 'active',
-    'page' => 1,
-    'limit' => 10,
-]);
-```
-
-### Plans
-
-Create plan:
+### Subscriptions & plans
 
 ```php
 $response = Paymish::plan()->create([
@@ -272,45 +204,41 @@ $response = Paymish::plan()->create([
     'interval' => 'Monthly',
     'planDescription' => 'Premium subscription plan',
 ]);
-```
+$response = Paymish::plan()->list(['status' => 'Active', 'page' => 1, 'limit' => 10]);
+$response = Paymish::plan()->getDetails(1);
+$response = Paymish::plan()->updateDetails([/* ... */]);
+$response = Paymish::plan()->delete(['id' => 1]);
 
-List plans:
-
-```php
-$response = Paymish::plan()->list([
-    'status' => 'Active',
-    'interval' => 'Monthly',
-    'page' => 1,
-    'limit' => 10,
+$response = Paymish::subscription()->create([
+    'planId' => 49,
+    'customerId' => 'CUST789',
+    'amount' => 29.99,
+    'interval' => 'monthly',
+    'status' => 'active',
 ]);
+$response = Paymish::subscription()->list(['status' => 'active', 'page' => 1, 'limit' => 10]);
+$response = Paymish::subscription()->get(1);
+$response = Paymish::subscription()->update(1, [/* ... */]);
+$response = Paymish::subscription()->delete(1);
 ```
 
-### Payment Pages
-
-Create payment page:
+### Payment pages
 
 ```php
 $response = Paymish::paymentPage()->create([
     'pageType' => 'Subscription',
     'pageName' => 'My Payment Page',
-    'pageDescription' => 'This is a sample payment page',
+    'pageDescription' => 'Sample payment page',
     'planId' => 456,
 ]);
-```
-
-List payment pages:
-
-```php
-$response = Paymish::paymentPage()->list([
-    'status' => 'Published',
-    'page' => 1,
-    'limit' => 10,
-]);
+$response = Paymish::paymentPage()->list(['status' => 'Published', 'page' => 1, 'limit' => 10]);
+$response = Paymish::paymentPage()->getDetails(1);
+$response = Paymish::paymentPage()->checkCustomLink(['customLink' => 'my-page']);
+$response = Paymish::paymentPage()->addProduct([/* pageId, productId, ... */]);
+$response = Paymish::paymentPage()->getProducts(1);
 ```
 
 ### Products
-
-Create product:
 
 ```php
 $response = Paymish::product()->create([
@@ -320,23 +248,10 @@ $response = Paymish::product()->create([
     'quantityType' => 'Limited',
     'quantityStock' => 100,
 ]);
-```
-
-Upload product media:
-
-```php
+$response = Paymish::product()->list(['page' => 1, 'limit' => 10]);
+$response = Paymish::product()->getDetails('123');
 $response = Paymish::product()->uploadMedia('123', '/path/to/image.jpg');
-```
-
-Add digital download files:
-
-```php
 $response = Paymish::product()->addDigitalDownloadFile('123', '/path/to/file.pdf');
-```
-
-Add discount code:
-
-```php
 $response = Paymish::product()->addDiscountCode([
     'productId' => '123',
     'code' => 'DISCOUNT20',
@@ -344,68 +259,50 @@ $response = Paymish::product()->addDiscountCode([
 ]);
 ```
 
-### Customers
+Additional product helpers (media, inventory, delivery fees, discount codes) follow the same facade pattern — see [OpenAPI docs](https://api.paymish.com/api/user-service/external/v1/docs/) for full payloads.
 
-Create customer:
+### Customers
 
 ```php
 $response = Paymish::customer()->create([
     'email' => 'john@example.com',
     'first_name' => 'John',
     'last_name' => 'Doe',
-    'phone_number' => '1234567890',
+    'phone_number' => '08012345678',
 ]);
-```
-
-List customers:
-
-```php
-$response = Paymish::customer()->list([
-    'limit' => 10,
-    'page' => 1,
-    'search' => 'John',
-]);
+$response = Paymish::customer()->list(['limit' => 10, 'page' => 1, 'search' => 'John']);
+$response = Paymish::customer()->getById(1);
+$response = Paymish::customer()->update([/* ... */]);
+$response = Paymish::customer()->blacklist(['id' => 1, 'isBlackListed' => true]);
 ```
 
 ### Business
 
-Change business mode:
-
 ```php
-$response = Paymish::business()->changeMode(true); // Set to live mode
-```
-
-Get business details:
-
-```php
+$response = Paymish::business()->changeMode(true); // live mode
 $response = Paymish::business()->getDetails();
+$response = Paymish::business()->list();
+$response = Paymish::business()->create([
+    'countryId' => 1,
+    'businessName' => 'My Business',
+    'businessCategory' => 'Retail',
+    'businessDescription' => 'Description',
+]);
 ```
 
-### Split Pages
-
-Create split page:
+### Split pages & subaccounts
 
 ```php
 $response = Paymish::splitPage()->create([
     'name' => 'Revenue Split',
     'splitType' => 'percentage',
 ]);
-```
-
-Add subaccount to split page:
-
-```php
+// Paymish API field name is `shere` (not `share`)
 $response = Paymish::splitPage()->addSubaccount(1, [
     'shere' => 50,
-    'sub_account_id' => 'ACCT_ommrl743pgmbi8r',
+    'sub_account_id' => 'ACCT_...',
 ]);
-```
 
-### Subaccounts
-
-Create subaccount:
-
-```php
 $response = Paymish::subaccount()->create([
     'business_name' => 'My Business',
     'account_number' => '1234567890',
@@ -414,68 +311,79 @@ $response = Paymish::subaccount()->create([
     'bank' => 999004,
     'account_name' => 'Account Name',
 ]);
-```
-
-List subaccounts:
-
-```php
-$response = Paymish::subaccount()->list([
-    'page' => 1,
-    'limit' => 10,
-]);
+$response = Paymish::subaccount()->list(['page' => 1, 'limit' => 10]);
+$response = Paymish::subaccount()->get(1);
 ```
 
 ### Disputes
 
-Create dispute:
-
 ```php
 $response = Paymish::dispute()->create([
     'image' => '/path/to/evidence.jpg',
-    'transactionRef' => 'TXN_4HfVJ6nkANC57iPiVXtYLS',
+    'transactionRef' => 'TXN_...',
     'disputeReason' => 'Product not received',
     'disputeDescription' => 'Detailed description of the dispute',
 ]);
+$response = Paymish::dispute()->list(['limit' => 10, 'page' => 1]);
+$response = Paymish::dispute()->getDetails('TXN_...');
+$response = Paymish::dispute()->update([/* ... */]);
 ```
 
-List disputes:
+## Webhooks
+
+Paymish OpenAPI does not document a webhook HMAC scheme. This package includes an optional Paystack-style helper (HMAC-SHA512 hex of the raw body).
+
+If `PAYMISH_WEBHOOK_SECRET` is empty, `PaymishWebhook::valid()` returns `true` (no-op) — you **must** still verify the payment via the API.
 
 ```php
-$response = Paymish::dispute()->list([
-    'limit' => 10,
-    'page' => 1,
-]);
-```
+use Bhekor\Paymish\Facades\Paymish;
+use Bhekor\Paymish\PaymishWebhook;
+use Illuminate\Http\Request;
 
-## Response Handling
+public function handle(Request $request)
+{
+    $rawBody = $request->getContent();
+    $signature = $request->header(config('paymish.webhook_signature_header'));
 
-All API methods return an `ApiResponse` object:
-
-```php
-$response = Paymish::transaction()->initialize([...]);
-
-// Check if request was successful
-if ($response->successful()) {
-    // Get all data
-    $data = $response->all();
-
-    // Get specific value
-    $transactionId = $response->get('transactionId');
-
-    // Get message
-    $message = $response->message();
-
-    // Check if key exists
-    if ($response->has('data')) {
-        // Access data as array
-        $transactionData = $response->data();
+    if (! PaymishWebhook::valid($rawBody, $signature)) {
+        abort(401, 'Invalid webhook signature');
     }
+
+    $payload = $request->json()->all();
+    $reference = $payload['data']['reference'] ?? $payload['reference'] ?? null;
+
+    if ($reference) {
+        $verified = Paymish::transaction()->verify($reference);
+        // fulfill order when $verified->successful() and status is completed
+    }
+
+    return response()->json(['received' => true]);
 }
 ```
 
-## Error Handling
+## Response handling
 
-The package throws specific exceptions for different error scenarios:
+All API methods return an `ApiResponse`:
+
+```php
+$response = Paymish::transaction()->initialize([/* ... */]);
+
+if ($response->successful()) {
+    $data = $response->all();
+    $transactionId = $response->get('transactionId');
+    $nested = $response->get('data.status'); // dot notation supported
+    $message = $response->message();
+    $status = $response->getStatusCode();
+
+    if ($response->has('data')) {
+        $transactionData = $response->data();
+    }
+
+    $array = $response->toArray();
+}
+```
+
+## Error handling
 
 ```php
 use Bhekor\Paymish\Exceptions\AuthenticationException;
@@ -483,15 +391,13 @@ use Bhekor\Paymish\Exceptions\ValidationException;
 use Bhekor\Paymish\Exceptions\PaymishException;
 
 try {
-    $response = Paymish::transaction()->initialize([...]);
+    $response = Paymish::transaction()->initialize([/* ... */]);
 } catch (AuthenticationException $e) {
-    // Handle authentication errors
-    echo $e->getMessage();
+    // 401 / missing credentials
 } catch (ValidationException $e) {
-    // Handle validation errors
     $errors = $e->getErrors();
 } catch (PaymishException $e) {
-    // Handle general API errors
+    // 404, 5xx, and other API errors
     echo $e->getMessage();
 }
 ```
@@ -508,7 +414,7 @@ Please see [CHANGELOG.md](CHANGELOG.md) for recent changes.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome — open a pull request or [issue](https://github.com/bhekor/laravel-paymish/issues).
 
 ## Credits
 

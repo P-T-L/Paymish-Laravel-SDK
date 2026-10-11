@@ -41,11 +41,30 @@ class ApiResponse implements ArrayAccess, JsonSerializable
     }
 
     /**
-     * Get a specific value from the response
+     * Get a specific value from the response (supports dot notation)
      */
     public function get(string $key, $default = null)
     {
-        return $this->data[$key] ?? $default;
+        if (array_key_exists($key, $this->data)) {
+            return $this->data[$key];
+        }
+
+        if (! str_contains($key, '.')) {
+            return $default;
+        }
+
+        $segments = explode('.', $key);
+        $value = $this->data;
+
+        foreach ($segments as $segment) {
+            if (! is_array($value) || ! array_key_exists($segment, $value)) {
+                return $default;
+            }
+
+            $value = $value[$segment];
+        }
+
+        return $value;
     }
 
     /**
@@ -75,22 +94,22 @@ class ApiResponse implements ArrayAccess, JsonSerializable
     /**
      * ArrayAccess implementation
      */
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         return isset($this->data[$offset]);
     }
 
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         return $this->data[$offset] ?? null;
     }
 
-    public function offsetSet($offset, $value): void
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         $this->data[$offset] = $value;
     }
 
-    public function offsetUnset($offset): void
+    public function offsetUnset(mixed $offset): void
     {
         unset($this->data[$offset]);
     }

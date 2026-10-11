@@ -88,8 +88,15 @@ class PaymishClient
 
     protected function loadDefaultEndpoints(): array
     {
-        if (function_exists('config') && config('paymish.endpoints')) {
-            return config('paymish.endpoints');
+        try {
+            if (function_exists('app') && app()->bound('config')) {
+                $endpoints = config('paymish.endpoints');
+                if (is_array($endpoints) && $endpoints !== []) {
+                    return $endpoints;
+                }
+            }
+        } catch (\Throwable) {
+            // Outside a bootstrapped Laravel application.
         }
 
         $configFile = __DIR__.'/config/endpoints.php';
