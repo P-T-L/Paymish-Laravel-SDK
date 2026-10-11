@@ -26,6 +26,7 @@ return [
         'initialize' => '/api/transaction-service/external/v1/transaction-initialize',
         'initialize_dva' => '/api/transaction-service/external/v1/transaction-initialize/dva',
         'list' => '/api/transaction-service/external/v1/list',
+        'verify' => '/api/transaction-service/external/v1/verify/{reference}',
         'with_card' => '/api/transaction-service/external/v1/transaction-with-card',
         'with_ndd' => '/api/transaction-service/external/v1/transaction-with-ndd',
         'with_qr' => '/api/transaction-service/external/v1/transaction-with-qr',
@@ -33,8 +34,20 @@ return [
         'with_ussd' => '/api/transaction-service/external/v1/transaction-with-ussd',
         'verify_ussd' => '/api/transaction-service/external/v1/transaction-with-ussd-verify',
         'bank_verify' => '/api/transaction-service/external/v1/bank-verify',
+        'verify_account' => '/api/transaction-service/external/v1/verify-account',
         'bank_list' => '/api/transaction-service/external/v1/bank-list',
         'refund' => '/api/transaction-service/external/v1/refund-transaction',
+    ],
+
+    'dedicated_virtual_accounts' => [
+        'create' => '/api/transaction-service/external/v1/dedicated-virtual-accounts',
+    ],
+
+    'virtual_accounts' => [
+        'list' => '/api/transaction-service/external/v1/virtual-accounts',
+        'create' => '/api/transaction-service/external/v1/virtual-accounts',
+        'get' => '/api/transaction-service/external/v1/virtual-accounts/{id}',
+        'update' => '/api/transaction-service/external/v1/virtual-accounts/{id}',
     ],
 
     'transfer' => [

@@ -15,19 +15,24 @@ class AuthApi
     }
 
     /**
-     * Generate authentication token
+     * Generate authentication token.
      *
-     * @param array $credentials Login credentials (email, password, etc.)
-     * @return ApiResponse
+     * Accepts either OpenAPI shape (public_key, secret_key) or email/password.
+     *
+     * @param  array<string, mixed>  $credentials
      */
     public function generateToken(array $credentials): ApiResponse
     {
         $endpoint = $this->client->getEndpoint('auth', 'generate_token');
-        $response = $this->client->post($endpoint, $credentials);
+        // Token endpoint must not recurse into auto-auth.
+        $response = $this->client->post($endpoint, $credentials, [], false);
 
-        // Store the token if present in response
-        if ($response->has('token') || $response->has('access_token')) {
-            $token = $response->get('token') ?? $response->get('access_token');
+        $token = $response->get('token')
+            ?? $response->get('access_token')
+            ?? data_get($response->toArray(), 'data.token')
+            ?? data_get($response->toArray(), 'data.access_token');
+
+        if (is_string($token) && $token !== '') {
             $this->client->setBearerToken($token);
         }
 

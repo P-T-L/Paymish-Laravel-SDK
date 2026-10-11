@@ -85,4 +85,35 @@ class TransferApi
         $endpoint = $this->client->getEndpoint('transfer', 'submit_bulk');
         return $this->client->post($endpoint, $data);
     }
+
+    /**
+     * Resolve (name enquiry) a bank account number.
+     *
+     * @param  array{bankCode: string, accountNumber: string}  $data
+     */
+    public function resolveAccount(array $data): ApiResponse
+    {
+        return $this->client->transaction()->verifyAccount($data);
+    }
+
+    /**
+     * Verify a transfer by transfer code (preferred) or list filter by reference.
+     */
+    public function verifyTransfer(string $referenceOrCode): ApiResponse
+    {
+        $referenceOrCode = trim($referenceOrCode);
+        if ($referenceOrCode === '') {
+            return $this->getDetails('');
+        }
+
+        if (str_starts_with(strtoupper($referenceOrCode), 'TRF')) {
+            return $this->getDetails($referenceOrCode);
+        }
+
+        try {
+            return $this->getDetails($referenceOrCode);
+        } catch (\Throwable) {
+            return $this->getList(['transferReference' => $referenceOrCode]);
+        }
+    }
 }

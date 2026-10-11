@@ -18,21 +18,32 @@ php artisan vendor:publish --provider="Bhekor\Paymish\PaymishServiceProvider" --
 
 ## Configuration
 
-Add your Paymish credentials to your `.env` file:
+Add your Paymish credentials to your `.env` file. Prefer OpenAPI keys when available; email/password also works:
 
 ```env
-PAYMISH_API_KEY=your-api-key
+PAYMISH_PUBLIC_KEY=your-public-key
+PAYMISH_SECRET_KEY=your-secret-key
+# OR
+PAYMISH_EMAIL=your-email@example.com
+PAYMISH_PASSWORD=your-password
+
 PAYMISH_BASE_URL=https://api.paymish.com
 PAYMISH_LIVE=false
 PAYMISH_TIMEOUT=30
 PAYMISH_CURRENCY=NGN
+PAYMISH_TOKEN_CACHE_SECONDS=3500
+PAYMISH_WEBHOOK_SECRET=
 ```
+
+API reference: https://api.paymish.com/api/user-service/external/v1/docs/
+
+Amounts for initialize / DVA / transfers are in **NGN major units** (send `1100` for ₦1,100). OpenAPI may mention subunits; live Paymish treats the value as naira.
 
 ## Usage
 
 ### Authentication
 
-First, generate an authentication token:
+The client auto-authenticates from config before API calls (cached bearer JWT). You can still call manually:
 
 ```php
 use Bhekor\Paymish\Facades\Paymish;
@@ -41,8 +52,30 @@ $response = Paymish::auth()->generateToken([
     'email' => 'your-email@example.com',
     'password' => 'your-password',
 ]);
+// or: ['public_key' => '...', 'secret_key' => '...']
+```
 
-// The token is automatically set on the client for subsequent requests
+### Verify transaction
+
+```php
+$response = Paymish::transaction()->verify('ww0yy74pd9tcih');
+// data.status: completed | failed | pending | reversed
+```
+
+### Dedicated virtual account
+
+```php
+$response = Paymish::dedicatedVirtualAccount()->create([
+    'customerId' => 'cust_...',
+    'firstName' => 'John',
+    'lastName' => 'Doe',
+    'email' => 'customer@email.com',
+    'phoneNumber' => '08012345678',
+    'bvn' => '22222222226',
+    'dob' => '1990-01-15',
+    'address' => '123 Main Street, Lagos',
+    'gender' => 'Male',
+]);
 ```
 
 ### Transactions

@@ -3,13 +3,9 @@
 namespace Bhekor\Paymish;
 
 use Illuminate\Support\ServiceProvider;
-use Bhekor\Paymish\PaymishClient;
 
 class PaymishServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->mergeConfigFrom(
@@ -26,18 +22,20 @@ class PaymishServiceProvider extends ServiceProvider
             return new PaymishClient(
                 config('paymish.api_key'),
                 config('paymish.base_url', 'https://api.paymish.com'),
-                config('paymish.timeout', 30),
-                config('paymish.is_live', false),
-                config('paymish.endpoints')
+                (int) config('paymish.timeout', 30),
+                (bool) config('paymish.is_live', false),
+                config('paymish.endpoints'),
+                config('paymish.public_key'),
+                config('paymish.secret_key'),
+                config('paymish.email'),
+                config('paymish.password'),
+                (int) config('paymish.token_cache_seconds', 3500),
             );
         });
 
         $this->app->alias(PaymishClient::class, 'paymish');
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->publishes([

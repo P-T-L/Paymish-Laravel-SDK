@@ -3,12 +3,26 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Paymish API Key
+    | Paymish API Credentials
     |--------------------------------------------------------------------------
     |
-    | Your Paymish API key for authentication. You can get this from your
-    | Paymish dashboard.
+    | generate-token accepts either public_key + secret_key (OpenAPI) or
+    | email + password. Keys are preferred when both pairs are present.
     |
+    */
+
+    'public_key' => env('PAYMISH_PUBLIC_KEY'),
+
+    'secret_key' => env('PAYMISH_SECRET_KEY'),
+
+    'email' => env('PAYMISH_EMAIL'),
+
+    'password' => env('PAYMISH_PASSWORD'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Legacy / unused API key slot (kept for backwards compatibility)
+    |--------------------------------------------------------------------------
     */
 
     'api_key' => env('PAYMISH_API_KEY'),
@@ -17,10 +31,6 @@ return [
     |--------------------------------------------------------------------------
     | Paymish Base URL
     |--------------------------------------------------------------------------
-    |
-    | The base URL for the Paymish API. This defaults to the official Paymish
-    | API endpoint. You can change this if you're using a custom endpoint.
-    |
     */
 
     'base_url' => env('PAYMISH_BASE_URL', 'https://api.paymish.com'),
@@ -29,21 +39,14 @@ return [
     |--------------------------------------------------------------------------
     | Live Mode
     |--------------------------------------------------------------------------
-    |
-    | Set this to true when you're ready to use the live production environment.
-    | Set to false for test/sandbox mode.
-    |
     */
 
     'is_live' => env('PAYMISH_LIVE', false),
 
     /*
     |--------------------------------------------------------------------------
-    | Request Timeout
+    | Request Timeout (seconds)
     |--------------------------------------------------------------------------
-    |
-    | The timeout for API requests in seconds. Default is 30 seconds.
-    |
     */
 
     'timeout' => env('PAYMISH_TIMEOUT', 30),
@@ -52,11 +55,25 @@ return [
     |--------------------------------------------------------------------------
     | Default Currency
     |--------------------------------------------------------------------------
-    |
-    | The default currency to use for transactions. This can be overridden
-    | on a per-request basis.
-    |
     */
 
     'currency' => env('PAYMISH_CURRENCY', 'NGN'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bearer token cache TTL (seconds)
+    |--------------------------------------------------------------------------
+    */
+
+    'token_cache_seconds' => (int) env('PAYMISH_TOKEN_CACHE_SECONDS', 3500),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Webhook (optional — OpenAPI does not document a signature scheme)
+    |--------------------------------------------------------------------------
+    */
+
+    'webhook_secret' => env('PAYMISH_WEBHOOK_SECRET'),
+
+    'webhook_signature_header' => env('PAYMISH_WEBHOOK_SIGNATURE_HEADER', 'x-paymish-signature'),
 ];

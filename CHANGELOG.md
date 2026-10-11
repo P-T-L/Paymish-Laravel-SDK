@@ -2,10 +2,12 @@
 
 All notable changes to `laravel-paymish` will be documented in this file.
 
-## [1.0.0] - 2024-09-28
+## [1.0.0] - 2026-10-11
 
 ### Added
-- Initial release of Laravel Paymish package
+- Initial stable release of Laravel Paymish package
+- Laravel 10–12 support; email/password and public/secret key auth with auto-token
+- Transaction verify, dedicated virtual accounts, virtual-accounts CRUD
 - Full API coverage for Paymish payment gateway
 - Authentication API (token generation)
 - Dispute API (create, list, update disputes)

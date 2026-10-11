@@ -51,6 +51,33 @@ class TransactionApi
     }
 
     /**
+     * Verify a transaction by reference.
+     *
+     * GET /api/transaction-service/external/v1/verify/{reference}
+     */
+    public function verify(string $reference): ApiResponse
+    {
+        $endpoint = $this->client->buildEndpoint(
+            $this->client->getEndpoint('transaction', 'verify'),
+            ['reference' => $reference]
+        );
+
+        return $this->client->get($endpoint);
+    }
+
+    /**
+     * Verify (name enquiry) a bank account.
+     *
+     * @param  array{bankCode: string, accountNumber: string}  $data
+     */
+    public function verifyAccount(array $data): ApiResponse
+    {
+        $endpoint = $this->client->getEndpoint('transaction', 'verify_account');
+
+        return $this->client->post($endpoint, $data);
+    }
+
+    /**
      * Process a transaction with card
      *
      * @param array $data Card transaction data
