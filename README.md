@@ -424,4 +424,4 @@ Contributions are welcome — open a pull request or [issue](https://github.com/
 
 ## License
 
-# The MIT License (MIT). Please see [LICENSE.md](LICENSE.md) for more information.
+The MIT License (MIT). Please see [LICENSE.md](LICENSE.md) for more information.
