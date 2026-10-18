@@ -1,4 +1,6 @@
-# Laravel Paymish
+<<<<<<< HEAD
+
+# Paymish-Laravel-SDK
 
 [![Latest Version on Packagist](https://poser.pugx.org/bhekor/laravel-paymish/v/stable.svg)](https://packagist.org/packages/bhekor/laravel-paymish)
 [![Total Downloads](https://poser.pugx.org/bhekor/laravel-paymish/downloads.svg)](https://packagist.org/packages/bhekor/laravel-paymish)
@@ -422,4 +424,4 @@ Contributions are welcome — open a pull request or [issue](https://github.com/
 
 ## License
 
-The MIT License (MIT). Please see [LICENSE.md](LICENSE.md) for more information.
+# The MIT License (MIT). Please see [LICENSE.md](LICENSE.md) for more information.
